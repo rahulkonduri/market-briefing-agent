@@ -1,19 +1,18 @@
-name: Build and Deploy to Cloud Run
+name: Build and Deploy to Cloud Run Job
 
 on:
   push:
     branches: [ "main" ]
 
-# Crucial: This allows the action to request the JWT from GitHub's OIDC provider
 permissions:
   contents: 'read'
   id-token: 'write'
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: asia-south2
-  SERVICE_NAME: market-briefing-agent
-  REPO_NAME: news-agent-1
+  PROJECT_ID: 'market-analysis-agent-492509'
+  REGION: 'asia-south2'
+  JOB_NAME: 'market-briefing-agent'
+  REPO_NAME: 'news-agent-1'
 
 jobs:
   deploy:
@@ -26,28 +25,31 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
+          token_format: 'access_token'
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker for GCP
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      - name: Docker Auth
+        run: |
+          echo "${{ steps.auth.outputs.access_token }}" | docker login -u oauth2accesstoken --password-stdin https://${{ env.REGION }}-docker.pkg.dev
 
       - name: Build and Push Container
         run: |
-          IMAGE_URL="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          IMAGE_URL="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.JOB_NAME }}:${{ github.sha }}"
           docker build -t $IMAGE_URL .
           docker push $IMAGE_URL
 
-      - name: Deploy to Cloud Run
+      - name: Deploy to Cloud Run Job
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          job: ${{ env.SERVICE_NAME }}
+          job: ${{ env.JOB_NAME }}
           region: ${{ env.REGION }}
-          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-          # Passing your app's secrets from GitHub to the Cloud Run environment
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.JOB_NAME }}:${{ github.sha }}
+          # This tells the action we are specifically managing a JOB
+          action: 'deploy'
           env_vars: |
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}
