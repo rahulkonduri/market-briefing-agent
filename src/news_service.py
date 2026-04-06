@@ -18,6 +18,7 @@ class NewsFetcher:
         """
         Fetches the latest news articles based on the configured query.
         Returns a list of articles.
+        Njuhabgd oyiuou zdfyid yh
         """
         if not self.api_key:
             logger.error("NEWS_API_KEY is missing from configuration!")
