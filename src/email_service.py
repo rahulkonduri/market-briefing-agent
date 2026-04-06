@@ -61,9 +61,12 @@ class EmailSender:
         </html>
         """
 
+        # Parse multiple emails if comma-separated
+        target_list = [email.strip() for email in self.target.split(',') if email.strip()]
+
         msg = MIMEMultipart()
         msg['From'] = self.user
-        msg['To'] = self.target
+        msg['To'] = ", ".join(target_list)
         msg['Subject'] = subject
 
         msg.attach(MIMEText(full_html, 'html'))
@@ -76,8 +79,8 @@ class EmailSender:
             server.starttls()
             server.login(self.user, self.password)
             
-            logger.info(f"Sending email to {self.target}...")
-            server.send_message(msg)
+            logger.info(f"Sending email to {len(target_list)} recipients...")
+            server.send_message(msg, to_addrs=target_list)
             server.quit()
             
             logger.info("Email sent successfully!")
