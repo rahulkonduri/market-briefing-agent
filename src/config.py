@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     NEWS_API_KEY: str = ""
     NEWS_QUERY: str = "stocks OR markets OR economy"
 
-    # LLM
-    OPENAI_API_KEY: str = ""
+    # LLM (Vertex AI Gemini)
+    GCP_PROJECT_ID: str = ""
+    GCP_REGION: str = "asia-south2"
 
     # Email
     SMTP_HOST: str = "smtp.gmail.com"

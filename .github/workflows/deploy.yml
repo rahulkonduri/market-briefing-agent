@@ -49,7 +49,8 @@ jobs:
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           # Passing your app's secrets from GitHub to the Cloud Run environment
           env_vars: |
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            GCP_PROJECT_ID=${{ env.PROJECT_ID }}
+            GCP_REGION=${{ env.REGION }}
             NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASS=${{ secrets.SMTP_PASS }}

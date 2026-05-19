@@ -1,4 +1,5 @@
-from openai import OpenAI
+from google import genai
+from google.genai import types
 from typing import List, Dict, Any
 from .config import config
 from .utils.logger import setup_logger
@@ -6,19 +7,31 @@ from .utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 class AISummarizer:
-    """Service to summarize news articles using an LLM (OpenAI)."""
+    """Service to summarize news articles using an LLM (Vertex AI Gemini via unified SDK)."""
 
     def __init__(self):
-        self.api_key = config.OPENAI_API_KEY
-        if not self.api_key:
-            logger.error("OPENAI_API_KEY is missing from configuration!")
+        self.project_id = config.GCP_PROJECT_ID
+        self.region = config.GCP_REGION
+        
+        if not self.project_id:
+            logger.warning("GCP_PROJECT_ID is not set in config. Vertex AI may fall back to default project if available in environment.")
             
-        # Initialize OpenAI client
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
+        try:
+            # Initialize unified Google GenAI Client with vertexai=True
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.project_id or None,
+                location=self.region
+            )
+            # Using gemini-2.5-flash which is widely available and stable on Vertex AI
+            self.model_name = "gemini-2.5-flash"
+        except Exception as e:
+            logger.error(f"Failed to initialize Google GenAI Client: {e}")
+            self.client = None
 
     def summarize(self, articles: List[Dict[str, Any]]) -> str:
         """
-        Takes a list of articles, builds a prompt, and calls OpenAI to summarize.
+        Takes a list of articles, builds a prompt, and calls Gemini to summarize.
         Returns HTML-formatted summary ready for email body.
         """
         if not articles:
@@ -26,7 +39,7 @@ class AISummarizer:
             return "<p>No significant market news to report today.</p>"
             
         if not self.client:
-            raise ValueError("Cannot summarize because OPENAI_API_KEY is not configured.")
+            raise ValueError("Cannot summarize because Google GenAI Client is not initialized correctly.")
 
         # Prepare context
         context_parts = []
@@ -60,19 +73,19 @@ Instructions:
 """
         
         try:
-            logger.info("Sending summarization request to OpenAI API.")
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful financial assistant."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.5,
+            logger.info("Sending summarization request to Vertex AI Gemini API via Google GenAI SDK.")
+            
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.5
+                )
             )
             
             logger.info("Successfully generated summary.")
             
-            summary = response.choices[0].message.content
+            summary = response.text
             # Clean up potential markdown formatting
             if summary.startswith("```html"):
                 summary = summary.replace("```html", "", 1)
@@ -82,5 +95,5 @@ Instructions:
             return summary.strip()
             
         except Exception as e:
-            logger.error(f"Error communicating with OpenAI API: {e}")
+            logger.error(f"Error communicating with Vertex AI Gemini API: {e}")
             raise

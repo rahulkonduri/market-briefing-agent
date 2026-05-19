@@ -48,7 +48,11 @@ def run(dry_run: bool = False):
             print("\n" + "="*50)
             print("GENERATED HTML SUMMARY:")
             print("="*50)
-            print(final_html_content)
+            try:
+                print(final_html_content)
+            except UnicodeEncodeError:
+                # Fallback for terminals that don't fully support UTF-8 (e.g. legacy Windows cmd)
+                print(final_html_content.encode('utf-8', errors='replace').decode(sys.stdout.encoding or 'utf-8', errors='replace'))
             print("="*50 + "\n")
         else:
             email_sender = EmailSender()
