@@ -50,7 +50,7 @@ jobs:
           # Passing your app's secrets from GitHub to the Cloud Run environment
           env_vars: |
             GCP_PROJECT_ID=${{ env.PROJECT_ID }}
-            GCP_REGION=${{ env.REGION }}
+            GCP_REGION=us-central1
             NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASS=${{ secrets.SMTP_PASS }}
